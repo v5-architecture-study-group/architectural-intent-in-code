@@ -1,18 +1,26 @@
-package org.example.orderprocessing.domain;
+package org.example.components.orderprocessing.domain.primitives;
 
+import org.example.stereotype.DomainPrimitive;
 import org.example.stereotype.ThreadSafe;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
+@DomainPrimitive
 public final class Stock {
     private final String tickerSymbol;
 
-    public Stock(String tickerSymbol) {
+    public Stock(@NotNull String tickerSymbol) {
         this.tickerSymbol = requireNonNull(tickerSymbol);
-        // TODO Validate tickerSymbol
+        if (tickerSymbol.length() < 3) {
+            throw new IllegalArgumentException("Ticket symbol is to short");
+        }
+        if (!tickerSymbol.codePoints().allMatch(Character::isAlphabetic)) {
+            throw new IllegalArgumentException("Ticket symbol must be alphabetic");
+        }
     }
 
     @Override

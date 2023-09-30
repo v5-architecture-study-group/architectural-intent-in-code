@@ -1,6 +1,8 @@
-package org.example.orderprocessing.domain;
+package org.example.components.orderprocessing.domain.primitives;
 
+import org.example.stereotype.DomainPrimitive;
 import org.example.stereotype.ThreadSafe;
+import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -10,20 +12,21 @@ import java.util.Objects;
 import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
-public sealed class Money permits PositiveMoney {
+@DomainPrimitive
+public sealed class Money implements Comparable<Money> permits PositiveMoney {
     private final Currency currency;
     private final BigDecimal amount;
 
-    public Money(Currency currency, BigDecimal amount) {
+    public Money(@NotNull Currency currency, @NotNull BigDecimal amount) {
         this.currency = requireNonNull(currency);
         this.amount = requireNonNull(amount).setScale(currency.getDefaultFractionDigits(), RoundingMode.HALF_EVEN);
     }
 
-    public Currency currency() {
+    public @NotNull Currency currency() {
         return currency;
     }
 
-    public BigDecimal amount() {
+    public @NotNull BigDecimal amount() {
         return amount;
     }
 
@@ -38,5 +41,10 @@ public sealed class Money permits PositiveMoney {
     @Override
     public int hashCode() {
         return Objects.hash(currency, amount);
+    }
+
+    @Override
+    public int compareTo(@NotNull Money o) {
+        return amount.compareTo(o.amount);
     }
 }
