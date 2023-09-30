@@ -2,6 +2,7 @@ package org.example.components.testdata;
 
 import org.example.components.orderprocessing.domain.primitives.*;
 import org.example.components.orderprocessing.messages.BuyStockCommand;
+import org.example.components.orderprocessing.messages.CancelOrderCommand;
 import org.example.components.orderprocessing.messages.SellStockCommand;
 import org.example.pipesandfilters.HasOutput;
 import org.example.pipesandfilters.HotMessageSource;
@@ -14,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Random;
@@ -49,6 +51,7 @@ public final class TestCommandGeneratorComponent implements ActiveWorker, HasOut
     private final AtomicLong nextOrderId = new AtomicLong(1L);
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final Thread thread = new Thread(this::run, "TestCommandGenerator");
+    private final List<OrderId> issuedOrders = new ArrayList<>();
 
     private void run() {
         while (!shutdown.get()) {
@@ -68,10 +71,19 @@ public final class TestCommandGeneratorComponent implements ActiveWorker, HasOut
         var broker = BROKERS[rnd.nextInt(BROKERS.length)];
         var stock = STOCKS[rnd.nextInt(BROKERS.length)];
         var shares = new Shares((rnd.nextInt(10) + 1) * 50);
-        var price = new PositiveMoney(Currency.getInstance("EUR"), new BigDecimal((rnd.nextInt(20) + 1) * 5));
+        var price = new PositiveMoney(Currency.getInstance("EUR"), new BigDecimal((rnd.nextInt(5) + 1) * 5));
+
+        if (!issuedOrders.isEmpty()) {
+            if (rnd.nextInt(10) == 9) {
+                return new CancelOrderCommand(issuedOrders.get(rnd.nextInt(issuedOrders.size())));
+            }
+        }
+
         if (rnd.nextBoolean()) {
+            var id = createAskId();
+            issuedOrders.add(id);
             return new SellStockCommand(
-                    createOrderId(),
+                    id,
                     broker,
                     stock,
                     shares,
@@ -79,8 +91,10 @@ public final class TestCommandGeneratorComponent implements ActiveWorker, HasOut
                     COMMAND_DURATION
             );
         } else {
+            var id = createBidId();
+            issuedOrders.add(id);
             return new BuyStockCommand(
-                    createOrderId(),
+                    id,
                     broker,
                     stock,
                     shares,
@@ -90,8 +104,12 @@ public final class TestCommandGeneratorComponent implements ActiveWorker, HasOut
         }
     }
 
-    private @NotNull OrderId createOrderId() {
-        return new OrderId(nextOrderId.getAndIncrement());
+    private @NotNull AskId createAskId() {
+        return new AskId(nextOrderId.getAndIncrement());
+    }
+
+    private @NotNull BidId createBidId() {
+        return new BidId(nextOrderId.getAndIncrement());
     }
 
     private void publishCommand() {

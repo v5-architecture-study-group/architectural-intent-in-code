@@ -13,4 +13,9 @@ public record TransactionId(long sequenceNumber, @NotNull OrderId askId, @NotNul
         requireNonNull(askId);
         requireNonNull(bidId);
     }
+
+    @Override
+    public String toString() {
+        return "%d-%s-%s".formatted(sequenceNumber(), askId(), bidId());
+    }
 }

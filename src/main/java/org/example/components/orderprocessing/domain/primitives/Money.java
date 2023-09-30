@@ -31,6 +31,11 @@ public sealed class Money implements Comparable<Money> permits PositiveMoney {
     }
 
     @Override
+    public String toString() {
+        return "%s %s".formatted(currency.getCurrencyCode(), amount);
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

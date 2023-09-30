@@ -5,6 +5,8 @@ import org.example.stereotype.Entity;
 import org.example.stereotype.NotThreadSafe;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Duration;
+
 import static java.util.Objects.requireNonNull;
 
 @Entity
@@ -13,8 +15,8 @@ public final class Bid extends AbstractOrder {
     private final PositiveMoney bidPricePerShare;
     private Shares shares;
 
-    public Bid(@NotNull OrderId orderId, @NotNull Broker broker, @NotNull Stock stock, @NotNull PositiveMoney bidPricePerShare, @NotNull Shares shares) {
-        super(orderId, broker, stock);
+    public Bid(@NotNull BidId orderId, @NotNull Broker broker, @NotNull Stock stock, @NotNull Duration validFor, @NotNull PositiveMoney bidPricePerShare, @NotNull Shares shares) {
+        super(orderId, broker, stock, validFor);
         this.bidPricePerShare = requireNonNull(bidPricePerShare);
         this.shares = requireNonNull(shares);
     }

@@ -53,10 +53,8 @@ public final class FileSystemTransactionStoreComponent implements HasInput<Trans
         storeExecutor.execute(() -> {
             try {
                 var f = new File(directory, toFileName(transaction.transactionId()));
-                try (var fc = FileChannel.open(f.toPath(), StandardOpenOption.CREATE_NEW)) {
-                    try (var lock = fc.lock()) {
-                        transactionSerializer.serialize(transaction, Channels.newOutputStream(fc));
-                    }
+                try (var fc = FileChannel.open(f.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) {
+                    transactionSerializer.serialize(transaction, Channels.newOutputStream(fc));
                 }
             } catch (Throwable error) {
                 errorHandler.handleError(transaction, error);
@@ -65,7 +63,7 @@ public final class FileSystemTransactionStoreComponent implements HasInput<Trans
     }
 
     private @NotNull String toFileName(@NotNull TransactionId transactionId) {
-        return "%d-%s-%s".formatted(transactionId.sequenceNumber(), transactionId.askId(), transactionId.bidId());
+        return "%d-%s".formatted(System.currentTimeMillis(), transactionId.toString());
     }
 
     @Override

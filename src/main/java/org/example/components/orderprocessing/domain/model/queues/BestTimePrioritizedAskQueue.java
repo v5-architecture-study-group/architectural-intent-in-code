@@ -3,6 +3,7 @@ package org.example.components.orderprocessing.domain.model.queues;
 import org.example.components.orderprocessing.domain.model.Ask;
 import org.example.components.orderprocessing.domain.model.Bid;
 import org.example.components.orderprocessing.domain.model.PrioritizedAskQueue;
+import org.example.components.orderprocessing.domain.primitives.AskId;
 import org.example.components.orderprocessing.domain.primitives.OrderId;
 import org.example.components.orderprocessing.domain.primitives.PositiveMoney;
 import org.example.components.orderprocessing.domain.primitives.Stock;
@@ -63,7 +64,7 @@ public class BestTimePrioritizedAskQueue implements PrioritizedAskQueue {
     }
 
     @Override
-    public void cancel(@NotNull OrderId orderId) {
+    public void cancel(@NotNull AskId orderId) {
         cancelledOrders.add(orderId);
     }
 

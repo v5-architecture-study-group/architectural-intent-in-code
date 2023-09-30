@@ -8,5 +8,5 @@ import org.jetbrains.annotations.NotNull;
 public interface OrderProcessingWorkerOutputPort {
     void writeTransaction(@NotNull Transaction transaction);
 
-    void notifyOrderProcessed(@NotNull OrderId orderId);
+    void notifyOrderCompleted(@NotNull OrderId orderId);
 }

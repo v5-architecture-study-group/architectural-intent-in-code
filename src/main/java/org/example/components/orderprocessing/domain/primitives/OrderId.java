@@ -7,7 +7,7 @@ import java.util.Objects;
 
 @DomainPrimitive
 @ThreadSafe
-public final class OrderId {
+public abstract sealed class OrderId permits BidId, AskId {
     private final long id;
 
     public OrderId(long id) {
@@ -17,6 +17,10 @@ public final class OrderId {
     @Override
     public String toString() {
         return Long.toString(id);
+    }
+
+    public long toLong() {
+        return id;
     }
 
     @Override

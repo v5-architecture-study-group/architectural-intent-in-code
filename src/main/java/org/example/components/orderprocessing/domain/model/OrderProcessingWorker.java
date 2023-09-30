@@ -14,7 +14,8 @@ public final class OrderProcessingWorker implements PassiveWorker {
 
     private final PrioritizedAskQueue askQueue;
     private final PrioritizedBidQueue bidQueue;
-    private final TradeService tradeService;
+    private final OrderProcessingWorkerOutputPort outputPort;
+    private final TransactionIdFactory transactionIdFactory;
 
     public OrderProcessingWorker(@NotNull PrioritizedAskQueue askQueue,
                                  @NotNull PrioritizedBidQueue bidQueue,
@@ -22,39 +23,40 @@ public final class OrderProcessingWorker implements PassiveWorker {
                                  @NotNull TransactionIdFactory transactionIdFactory) {
         this.askQueue = requireNonNull(askQueue);
         this.bidQueue = requireNonNull(bidQueue);
-        requireNonNull(outputPort);
-        requireNonNull(transactionIdFactory);
-        this.tradeService = new TradeService(new TradeServiceOutputPort() {
-            @Override
-            public void writeTransaction(@NotNull Stock stock,
-                                         @NotNull Broker bidder,
-                                         @NotNull OrderId bidId,
-                                         @NotNull Broker seller,
-                                         @NotNull OrderId askId,
-                                         @NotNull Shares shares,
-                                         @NotNull PositiveMoney pricePerShare) {
-                outputPort.writeTransaction(
-                        new Transaction(transactionIdFactory.createNewTransactionId(askId, bidId),
-                                stock, bidder, bidId, seller, askId, shares, pricePerShare)
-                );
-            }
-
-            @Override
-            public void completeOrder(@NotNull Ask ask) {
-                askQueue.complete(ask);
-                outputPort.notifyOrderProcessed(ask.orderId());
-            }
-
-            @Override
-            public void completeOrder(@NotNull Bid bid) {
-                bidQueue.complete(bid);
-                outputPort.notifyOrderProcessed(bid.orderId());
-            }
-        });
+        this.outputPort = requireNonNull(outputPort);
+        this.transactionIdFactory = requireNonNull(transactionIdFactory);
     }
 
     @Override
     public void executeNextJob() {
-        bidQueue.getNextBid().ifPresent(bid -> askQueue.getBestAsk(bid).ifPresent(ask -> tradeService.processTrade(ask, bid)));
+        var bids = bidQueue.getNextBids();
+        var bid = bids.peek();
+        if (bid != null) {
+            var asks = askQueue.getBestAsks(bid);
+            var ask = asks.peek();
+            if (ask != null) {
+                TradeService.processTrade(ask, bid, new TradeServiceOutputPort() {
+                    @Override
+                    public void writeTransaction(@NotNull Stock stock, @NotNull Broker bidder, @NotNull OrderId bidId, @NotNull Broker seller, @NotNull OrderId askId, @NotNull Shares shares, @NotNull PositiveMoney pricePerShare) {
+                        outputPort.writeTransaction(
+                                new Transaction(transactionIdFactory.createNewTransactionId(askId, bidId),
+                                        stock, bidder, bidId, seller, askId, shares, pricePerShare)
+                        );
+                    }
+
+                    @Override
+                    public void completeOrder(@NotNull Ask ask) {
+                        asks.poll();
+                        outputPort.notifyOrderCompleted(ask.orderId());
+                    }
+
+                    @Override
+                    public void completeOrder(@NotNull Bid bid) {
+                        bids.poll();
+                        outputPort.notifyOrderCompleted(bid.orderId());
+                    }
+                });
+            }
+        }
     }
 }

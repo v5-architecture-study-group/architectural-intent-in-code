@@ -1,16 +1,19 @@
 package org.example.components.orderprocessing.domain.model;
 
-import org.example.components.orderprocessing.domain.primitives.OrderId;
+import org.example.components.orderprocessing.domain.primitives.BidId;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public interface PrioritizedBidQueue {
-    @NotNull Optional<Bid> getNextBid();
+    @NotNull BidQueue getNextBids();
 
     void push(@NotNull Bid bid);
 
-    void cancel(@NotNull OrderId orderId);
+    void cancel(@NotNull BidId orderId);
 
-    void complete(@NotNull Bid bid);
+    interface BidQueue {
+        @Nullable Bid peek();
+
+        @Nullable Bid poll();
+    }
 }

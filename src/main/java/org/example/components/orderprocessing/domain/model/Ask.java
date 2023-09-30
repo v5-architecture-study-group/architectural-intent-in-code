@@ -15,7 +15,7 @@ public final class Ask extends AbstractOrder {
     private final PositiveMoney askPricePerShare;
     private Shares shares;
 
-    public Ask(@NotNull OrderId orderId, @NotNull Broker broker, @NotNull Stock stock, @NotNull Duration validFor,
+    public Ask(@NotNull AskId orderId, @NotNull Broker broker, @NotNull Stock stock, @NotNull Duration validFor,
                @NotNull PositiveMoney askPricePerShare, @NotNull Shares shares) {
         super(orderId, broker, stock, validFor);
         this.askPricePerShare = requireNonNull(askPricePerShare);

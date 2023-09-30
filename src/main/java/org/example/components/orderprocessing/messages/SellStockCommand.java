@@ -11,12 +11,12 @@ import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
 public record SellStockCommand(
-        @NotNull OrderId orderId,
+        @NotNull AskId orderId,
         @NotNull Broker broker,
         @NotNull Stock stock,
         @NotNull Shares shares,
         @NotNull PositiveMoney askPricePerShare,
-        @NotNull Duration cancelAfter
+        @NotNull Duration validFor
 ) implements Command {
     public SellStockCommand {
         requireNonNull(orderId);
@@ -24,6 +24,6 @@ public record SellStockCommand(
         requireNonNull(stock);
         requireNonNull(shares);
         requireNonNull(askPricePerShare);
-        requireNonNull(cancelAfter);
+        requireNonNull(validFor);
     }
 }

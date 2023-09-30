@@ -5,19 +5,14 @@ import org.example.stereotype.DomainService;
 import org.example.stereotype.NotThreadSafe;
 import org.jetbrains.annotations.NotNull;
 
-import static java.util.Objects.requireNonNull;
-
 @DomainService
 @NotThreadSafe
 final class TradeService {
 
-    private final TradeServiceOutputPort outputPort;
-
-    TradeService(@NotNull TradeServiceOutputPort outputPort) {
-        this.outputPort = requireNonNull(outputPort);
+    private TradeService() {
     }
 
-    public void processTrade(@NotNull Ask ask, @NotNull Bid bid) {
+    public static void processTrade(@NotNull Ask ask, @NotNull Bid bid, @NotNull TradeServiceOutputPort outputPort) {
         var shares = Shares.min(ask.shares(), bid.shares());
         outputPort.writeTransaction(ask.stock(), bid.broker(), bid.orderId(), ask.broker(), ask.orderId(), shares, bid.bidPricePerShare());
         if (shares.equals(ask.shares())) {
