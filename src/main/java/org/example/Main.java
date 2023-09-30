@@ -23,7 +23,6 @@ public class Main {
     public static void main(String[] args) throws Exception {
         var fileExecutor = Executors.newSingleThreadExecutor();
 
-        var testCommandGenerator = new TestCommandGeneratorComponent();
         var orderProcessing = new OrderProcessingComponent();
         var transactionStore = new FileSystemTransactionStoreComponent(
                 new TransactionJsonSerializer(),
@@ -32,6 +31,7 @@ public class Main {
                 LoggingTransactionStoreErrorHandler.singleton()
         );
         var marketPrice = new MarketPriceComponent();
+        var testCommandGenerator = new TestCommandGeneratorComponent(marketPrice);
 
         var createdTransactions = CastIfInstanceFilter.<Event, TransactionCreatedEvent>castIfInstanceOf(TransactionCreatedEvent.class);
         var cancelledOrders = CastIfInstanceFilter.<Event, OrderCancelledEvent>castIfInstanceOf(OrderCancelledEvent.class);

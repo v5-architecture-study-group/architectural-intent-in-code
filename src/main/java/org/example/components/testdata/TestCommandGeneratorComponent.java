@@ -1,5 +1,6 @@
 package org.example.components.testdata;
 
+import org.example.components.marketprice.MarketPriceComponent;
 import org.example.components.orderprocessing.domain.primitives.*;
 import org.example.components.orderprocessing.messages.BuyStockCommand;
 import org.example.components.orderprocessing.messages.CancelOrderCommand;
@@ -22,6 +23,8 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static java.util.Objects.requireNonNull;
+
 @Component
 @ThreadSafe
 public final class TestCommandGeneratorComponent implements ActiveWorker, HasOutput<Command> {
@@ -35,16 +38,20 @@ public final class TestCommandGeneratorComponent implements ActiveWorker, HasOut
             new Stock("ORCL")
     };
 
-    private static final Broker[] BROKERS = {
-            new Broker("Joe"),
-            new Broker("Alice"),
-            new Broker("Bob"),
+    private static final Broker[] SELLERS = {
             new Broker("Eve"),
             new Broker("Jennifer"),
             new Broker("Max")
     };
 
+    private static final Broker[] BUYERS = {
+            new Broker("Joe"),
+            new Broker("Alice"),
+            new Broker("Bob")
+    };
+
     private static final Duration COMMAND_DURATION = Duration.ofSeconds(10);
+    private static final Currency EUR = Currency.getInstance("EUR");
 
     private final HotMessageSource<Command> output = new HotMessageSource<>();
     private final Random rnd = new Random();
@@ -52,6 +59,11 @@ public final class TestCommandGeneratorComponent implements ActiveWorker, HasOut
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final Thread thread = new Thread(this::run, "TestCommandGenerator");
     private final List<OrderId> issuedOrders = new ArrayList<>();
+    private final MarketPriceComponent marketPriceComponent;
+
+    public TestCommandGeneratorComponent(@NotNull MarketPriceComponent marketPriceComponent) {
+        this.marketPriceComponent = requireNonNull(marketPriceComponent);
+    }
 
     private void run() {
         while (!shutdown.get()) {
@@ -68,34 +80,39 @@ public final class TestCommandGeneratorComponent implements ActiveWorker, HasOut
     }
 
     private @NotNull Command generateCommand() {
-        var broker = BROKERS[rnd.nextInt(BROKERS.length)];
-        var stock = STOCKS[rnd.nextInt(BROKERS.length)];
-        var shares = new Shares((rnd.nextInt(10) + 1) * 50);
-        var price = new PositiveMoney(Currency.getInstance("EUR"), new BigDecimal((rnd.nextInt(5) + 1) * 5));
-
         if (!issuedOrders.isEmpty()) {
-            if (rnd.nextInt(10) == 9) {
+            if (rnd.nextInt(20) == 0) {
                 return new CancelOrderCommand(issuedOrders.get(rnd.nextInt(issuedOrders.size())));
             }
         }
 
+        var stock = STOCKS[rnd.nextInt(STOCKS.length)];
+        var shares = new Shares((rnd.nextInt(10) + 1) * 10);
+        var price = marketPriceComponent.getMarketPrice(stock).orElse(new PositiveMoney(EUR, new BigDecimal(5)));
+
         if (rnd.nextBoolean()) {
+            if (price.amount().longValue() > 5 && rnd.nextInt(10) == 0) {
+                price = new PositiveMoney(EUR, price.amount().subtract(new BigDecimal(5)));
+            }
             var id = createAskId();
             issuedOrders.add(id);
             return new SellStockCommand(
                     id,
-                    broker,
+                    SELLERS[rnd.nextInt(SELLERS.length)],
                     stock,
                     shares,
                     price,
                     COMMAND_DURATION
             );
         } else {
+            if (rnd.nextInt(5) == 0) {
+                price = new PositiveMoney(EUR, price.amount().add(new BigDecimal(5)));
+            }
             var id = createBidId();
             issuedOrders.add(id);
             return new BuyStockCommand(
                     id,
-                    broker,
+                    BUYERS[rnd.nextInt(BUYERS.length)],
                     stock,
                     shares,
                     price,
