@@ -5,6 +5,8 @@ import org.example.stereotype.Entity;
 import org.example.stereotype.NotThreadSafe;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Duration;
+
 import static java.util.Objects.requireNonNull;
 
 @Entity
@@ -13,8 +15,9 @@ public final class Ask extends AbstractOrder {
     private final PositiveMoney askPricePerShare;
     private Shares shares;
 
-    public Ask(@NotNull OrderId orderId, @NotNull Broker broker, @NotNull Stock stock, @NotNull PositiveMoney askPricePerShare, @NotNull Shares shares) {
-        super(orderId, broker, stock);
+    public Ask(@NotNull OrderId orderId, @NotNull Broker broker, @NotNull Stock stock, @NotNull Duration validFor,
+               @NotNull PositiveMoney askPricePerShare, @NotNull Shares shares) {
+        super(orderId, broker, stock, validFor);
         this.askPricePerShare = requireNonNull(askPricePerShare);
         this.shares = requireNonNull(shares);
     }

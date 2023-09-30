@@ -2,15 +2,18 @@ package org.example.components.orderprocessing.domain.model;
 
 import org.example.components.orderprocessing.domain.primitives.OrderId;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public interface PrioritizedAskQueue {
-    @NotNull Optional<Ask> getBestAsk(@NotNull Bid bid);
+    @NotNull AskQueue getBestAsks(@NotNull Bid bid);
 
     void push(@NotNull Ask ask);
 
     void cancel(@NotNull OrderId orderId);
 
-    void complete(@NotNull Ask ask);
+    interface AskQueue {
+        @Nullable Ask peek();
+
+        @Nullable Ask poll();
+    }
 }

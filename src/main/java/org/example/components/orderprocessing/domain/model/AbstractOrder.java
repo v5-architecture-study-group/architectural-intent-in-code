@@ -7,6 +7,8 @@ import org.example.stereotype.Entity;
 import org.example.stereotype.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Duration;
+
 import static java.util.Objects.requireNonNull;
 
 @Entity
@@ -15,11 +17,13 @@ public abstract sealed class AbstractOrder permits Ask, Bid {
     private final OrderId orderId;
     private final Broker broker;
     private final Stock stock;
+    private final Duration validFor;
 
-    public AbstractOrder(@NotNull OrderId orderId, @NotNull Broker broker, @NotNull Stock stock) {
+    public AbstractOrder(@NotNull OrderId orderId, @NotNull Broker broker, @NotNull Stock stock, @NotNull Duration validFor) {
         this.orderId = requireNonNull(orderId);
         this.broker = requireNonNull(broker);
         this.stock = requireNonNull(stock);
+        this.validFor = requireNonNull(validFor);
     }
 
     public @NotNull OrderId orderId() {
@@ -32,5 +36,9 @@ public abstract sealed class AbstractOrder permits Ask, Bid {
 
     public @NotNull Stock stock() {
         return stock;
+    }
+
+    public @NotNull Duration validFor() {
+        return validFor;
     }
 }
