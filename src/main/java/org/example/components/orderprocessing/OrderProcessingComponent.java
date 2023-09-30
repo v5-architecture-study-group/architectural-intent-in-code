@@ -37,8 +37,8 @@ public class OrderProcessingComponent implements Filter<Command, Event>, ActiveW
     private final HotMessageSource<Event> output = new HotMessageSource<>();
 
     public OrderProcessingComponent() {
-        askQueue = new BestTimePrioritizedAskQueue(QUEUE_CAPACITY);
-        bidQueue = new BestTimePrioritizedBidQueue(QUEUE_CAPACITY);
+        askQueue = new BestTimePrioritizedAskQueue(QUEUE_CAPACITY, this::onAskCancelled);
+        bidQueue = new BestTimePrioritizedBidQueue(QUEUE_CAPACITY, this::onBidCancelled);
         engine = new OrderProcessingEngine(askQueue, bidQueue, new DefaultTransactionIdFactory(), output::publish);
     }
 
@@ -56,13 +56,22 @@ public class OrderProcessingComponent implements Filter<Command, Event>, ActiveW
         }
     }
 
+    private void onBidCancelled(@NotNull Bid bid) {
+        log.info("Bid {} cancelled", bid.orderId());
+        output.publish(new OrderCancelledEvent(bid.orderId()));
+    }
+
+    private void onAskCancelled(@NotNull Ask ask) {
+        log.info("Ask {} cancelled", ask.orderId());
+        output.publish(new OrderCancelledEvent(ask.orderId()));
+    }
+
     private void cancel(@NotNull OrderId orderId) {
         log.info("Cancelling order {}", orderId);
         switch (orderId) {
             case AskId askId -> askQueue.cancel(askId);
             case BidId bidId -> bidQueue.cancel(bidId);
         }
-        output.publish(new OrderCancelledEvent(orderId));
     }
 
     private void buy(@NotNull BuyStockCommand command) {

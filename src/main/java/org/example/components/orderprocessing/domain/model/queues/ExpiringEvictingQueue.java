@@ -9,12 +9,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.Predicate;
 
 @ThreadSafe
-final class ExpiringConditionalQueue<E> {
+final class ExpiringEvictingQueue<E> {
 
-    private final ConditionalQueue<Entry<E>> queue;
+    private final EvictingQueue<Entry<E>> queue;
 
-    ExpiringConditionalQueue(@NotNull ConditionalQueue.QueueFactory queueFactory, @Nullable Lock pushLock, @Nullable Lock pollLock) {
-        queue = new ConditionalQueue<>(queueFactory, pushLock, pollLock);
+    ExpiringEvictingQueue(@NotNull EvictingQueue.QueueFactory queueFactory, @Nullable Lock pushLock, @Nullable Lock pollLock, @Nullable EvictingQueueOutputPort<E> outputPort) {
+        queue = new EvictingQueue<>(queueFactory, pushLock, pollLock, outputPort == null ? null : e -> outputPort.elementEvicted(e.element));
     }
 
     public void push(@NotNull E element, @NotNull Duration keepFor) {

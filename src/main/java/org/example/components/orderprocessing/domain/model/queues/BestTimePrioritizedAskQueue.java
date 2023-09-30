@@ -8,6 +8,7 @@ import org.example.components.orderprocessing.domain.primitives.OrderId;
 import org.example.components.orderprocessing.domain.primitives.PositiveMoney;
 import org.example.components.orderprocessing.domain.primitives.Stock;
 import org.example.stereotype.ComponentDelegate;
+import org.example.stereotype.Port;
 import org.example.stereotype.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,6 +19,8 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static java.util.Objects.requireNonNull;
 
 @ComponentDelegate
 @ThreadSafe
@@ -37,9 +40,11 @@ public class BestTimePrioritizedAskQueue implements PrioritizedAskQueue {
         }
     };
     private final int queueCapacity;
+    private final OutputPort outputPort;
 
-    public BestTimePrioritizedAskQueue(int queueCapacity) {
+    public BestTimePrioritizedAskQueue(int queueCapacity, @NotNull OutputPort outputPort) {
         this.queueCapacity = queueCapacity;
+        this.outputPort = requireNonNull(outputPort);
     }
 
     @Override
@@ -70,10 +75,11 @@ public class BestTimePrioritizedAskQueue implements PrioritizedAskQueue {
 
     private class AskQueueImpl implements AskQueue {
 
-        private final ExpiringConditionalQueue<Ask> queue = new ExpiringConditionalQueue<>(
-                new ConditionalQueue.ArrayBlockingQueueFactory(queueCapacity),
+        private final ExpiringEvictingQueue<Ask> queue = new ExpiringEvictingQueue<>(
+                new EvictingQueue.ArrayBlockingQueueFactory(queueCapacity),
                 NoLock.INSTANCE, // ArrayBlockingQueue handles the locking for us when pushing
-                new ReentrantLock()
+                new ReentrantLock(),
+                outputPort::orderCancelled
         );
 
         @Override
@@ -89,5 +95,10 @@ public class BestTimePrioritizedAskQueue implements PrioritizedAskQueue {
         public void push(@NotNull Ask ask) {
             queue.push(ask, ask.validFor());
         }
+    }
+
+    @Port
+    public interface OutputPort {
+        void orderCancelled(@NotNull Ask ask);
     }
 }

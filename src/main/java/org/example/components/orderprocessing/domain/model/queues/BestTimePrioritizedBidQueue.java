@@ -7,6 +7,7 @@ import org.example.components.orderprocessing.domain.primitives.OrderId;
 import org.example.components.orderprocessing.domain.primitives.PositiveMoney;
 import org.example.components.orderprocessing.domain.primitives.Stock;
 import org.example.stereotype.ComponentDelegate;
+import org.example.stereotype.Port;
 import org.example.stereotype.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,6 +19,8 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static java.util.Objects.requireNonNull;
 
 @ComponentDelegate
 @ThreadSafe
@@ -37,10 +40,12 @@ public final class BestTimePrioritizedBidQueue implements PrioritizedBidQueue {
         }
     };
     private final int queueCapacity;
+    private final OutputPort outputPort;
     private final StockIterator stockIterator = new StockIterator();
 
-    public BestTimePrioritizedBidQueue(int queueCapacity) {
+    public BestTimePrioritizedBidQueue(int queueCapacity, @NotNull OutputPort outputPort) {
         this.queueCapacity = queueCapacity;
+        this.outputPort = requireNonNull(outputPort);
     }
 
     @Override
@@ -86,10 +91,11 @@ public final class BestTimePrioritizedBidQueue implements PrioritizedBidQueue {
 
     private class BidQueueImpl implements BidQueue {
 
-        private final ExpiringConditionalQueue<Bid> queue = new ExpiringConditionalQueue<>(
-                new ConditionalQueue.ArrayBlockingQueueFactory(queueCapacity),
+        private final ExpiringEvictingQueue<Bid> queue = new ExpiringEvictingQueue<>(
+                new EvictingQueue.ArrayBlockingQueueFactory(queueCapacity),
                 NoLock.INSTANCE, // ArrayBlockingQueue handles the locking for us when pushing
-                new ReentrantLock()
+                new ReentrantLock(),
+                outputPort::orderCancelled
         );
 
         @Override
@@ -105,5 +111,10 @@ public final class BestTimePrioritizedBidQueue implements PrioritizedBidQueue {
         public void push(@NotNull Bid bid) {
             queue.push(bid, bid.validFor());
         }
+    }
+
+    @Port
+    public interface OutputPort {
+        void orderCancelled(@NotNull Bid bid);
     }
 }

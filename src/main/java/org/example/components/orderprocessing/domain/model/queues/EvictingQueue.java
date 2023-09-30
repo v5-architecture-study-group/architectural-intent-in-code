@@ -11,13 +11,15 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 @ThreadSafe
-final class ConditionalQueue<E> {
+final class EvictingQueue<E> {
 
     private final Queue<E> queue;
     private final Lock pushLock;
     private final Lock pollLock;
+    private final EvictingQueueOutputPort<E> outputPort;
 
-    ConditionalQueue(@NotNull QueueFactory queueFactory, @Nullable Lock pushLock, @Nullable Lock pollLock) {
+    EvictingQueue(@NotNull QueueFactory queueFactory, @Nullable Lock pushLock, @Nullable Lock pollLock,
+                  @Nullable EvictingQueueOutputPort<E> outputPort) {
         this.queue = queueFactory.createQueue();
         if (pushLock == null && pollLock == null) {
             this.pushLock = new ReentrantLock();
@@ -32,6 +34,8 @@ final class ConditionalQueue<E> {
             this.pushLock = pushLock;
             this.pollLock = pollLock;
         }
+        this.outputPort = outputPort == null ? e -> {
+        } : outputPort;
     }
 
     public void push(@NotNull E element) {
@@ -43,15 +47,16 @@ final class ConditionalQueue<E> {
         }
     }
 
-    public @Nullable E peek(@NotNull Predicate<E> condition) {
+    public @Nullable E peek(@NotNull Predicate<E> keepInQueueIfMatching) {
         pollLock.lock();
         E element;
         try {
             while ((element = queue.peek()) != null) {
-                if (condition.test(element)) {
+                if (keepInQueueIfMatching.test(element)) {
                     return element;
                 }
                 queue.poll();
+                outputPort.elementEvicted(element);
             }
         } finally {
             pollLock.unlock();
@@ -59,14 +64,15 @@ final class ConditionalQueue<E> {
         return null;
     }
 
-    public @Nullable E poll(@NotNull Predicate<E> condition) {
+    public @Nullable E poll(@NotNull Predicate<E> keepInQueueIfMatching) {
         pollLock.lock();
         E element;
         try {
             while ((element = queue.poll()) != null) {
-                if (condition.test(element)) {
+                if (keepInQueueIfMatching.test(element)) {
                     return element;
                 }
+                outputPort.elementEvicted(element);
             }
         } finally {
             pollLock.unlock();
