@@ -10,5 +10,7 @@ public interface PrioritizedBidQueue {
 
     void push(@NotNull Bid bid);
 
-    void remove(@NotNull OrderId orderId);
+    void cancel(@NotNull OrderId orderId);
+
+    void complete(@NotNull Bid bid);
 }

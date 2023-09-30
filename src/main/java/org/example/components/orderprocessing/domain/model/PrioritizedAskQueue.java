@@ -10,5 +10,7 @@ public interface PrioritizedAskQueue {
 
     void push(@NotNull Ask ask);
 
-    void remove(@NotNull OrderId orderId);
+    void cancel(@NotNull OrderId orderId);
+
+    void complete(@NotNull Ask ask);
 }
