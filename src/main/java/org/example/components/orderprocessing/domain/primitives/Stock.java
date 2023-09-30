@@ -15,7 +15,7 @@ public final class Stock {
 
     public Stock(@NotNull String tickerSymbol) {
         this.tickerSymbol = requireNonNull(tickerSymbol);
-        if (tickerSymbol.length() < 3) {
+        if (tickerSymbol.length() < 2) {
             throw new IllegalArgumentException("Ticket symbol is to short");
         }
         if (!tickerSymbol.codePoints().allMatch(Character::isAlphabetic)) {
