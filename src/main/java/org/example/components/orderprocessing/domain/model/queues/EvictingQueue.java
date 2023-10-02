@@ -34,7 +34,16 @@ final class EvictingQueue<E> {
             this.pushLock = pushLock;
             this.pollLock = pollLock;
         }
-        this.outputPort = outputPort == null ? e -> {
+        this.outputPort = outputPort == null ? new EvictingQueueOutputPort<E>() {
+            @Override
+            public void elementEvicted(@NotNull E element) {
+                // NOP
+            }
+
+            @Override
+            public void elementPolled(@NotNull E element) {
+                // NOP
+            }
         } : outputPort;
     }
 
@@ -70,6 +79,7 @@ final class EvictingQueue<E> {
         try {
             while ((element = queue.poll()) != null) {
                 if (keepInQueueIfMatching.test(element)) {
+                    outputPort.elementPolled(element);
                     return element;
                 }
                 outputPort.elementEvicted(element);

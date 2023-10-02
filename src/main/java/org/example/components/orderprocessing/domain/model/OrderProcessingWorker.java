@@ -47,13 +47,11 @@ public final class OrderProcessingWorker implements PassiveWorker {
                     @Override
                     public void completeOrder(@NotNull Ask ask) {
                         asks.poll();
-                        outputPort.notifyOrderCompleted(ask.orderId());
                     }
 
                     @Override
                     public void completeOrder(@NotNull Bid bid) {
                         bids.poll();
-                        outputPort.notifyOrderCompleted(bid.orderId());
                     }
                 });
             }

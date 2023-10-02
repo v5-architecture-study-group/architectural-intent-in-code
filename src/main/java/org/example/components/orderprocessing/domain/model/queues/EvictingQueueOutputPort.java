@@ -6,4 +6,6 @@ import org.jetbrains.annotations.NotNull;
 @Port
 interface EvictingQueueOutputPort<E> {
     void elementEvicted(@NotNull E element);
+
+    void elementPolled(@NotNull E element);
 }

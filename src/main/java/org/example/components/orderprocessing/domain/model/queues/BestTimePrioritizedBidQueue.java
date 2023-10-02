@@ -95,7 +95,17 @@ public final class BestTimePrioritizedBidQueue implements PrioritizedBidQueue {
                 new EvictingQueue.ArrayBlockingQueueFactory(queueCapacity),
                 NoLock.INSTANCE, // ArrayBlockingQueue handles the locking for us when pushing
                 new ReentrantLock(),
-                outputPort::orderCancelled
+                new EvictingQueueOutputPort<>() {
+                    @Override
+                    public void elementEvicted(@NotNull Bid element) {
+                        outputPort.orderCancelled(element);
+                    }
+
+                    @Override
+                    public void elementPolled(@NotNull Bid element) {
+                        outputPort.orderCompleted(element);
+                    }
+                }
         );
 
         @Override
@@ -116,5 +126,7 @@ public final class BestTimePrioritizedBidQueue implements PrioritizedBidQueue {
     @Port
     public interface OutputPort {
         void orderCancelled(@NotNull Bid bid);
+
+        void orderCompleted(@NotNull Bid bid);
     }
 }

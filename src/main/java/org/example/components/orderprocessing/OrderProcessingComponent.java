@@ -1,19 +1,13 @@
 package org.example.components.orderprocessing;
 
-import org.example.components.orderprocessing.domain.model.Ask;
-import org.example.components.orderprocessing.domain.model.Bid;
-import org.example.components.orderprocessing.domain.model.PrioritizedAskQueue;
-import org.example.components.orderprocessing.domain.model.PrioritizedBidQueue;
+import org.example.components.orderprocessing.domain.model.*;
 import org.example.components.orderprocessing.domain.model.factories.DefaultTransactionIdFactory;
 import org.example.components.orderprocessing.domain.model.queues.BestTimePrioritizedAskQueue;
 import org.example.components.orderprocessing.domain.model.queues.BestTimePrioritizedBidQueue;
 import org.example.components.orderprocessing.domain.primitives.AskId;
 import org.example.components.orderprocessing.domain.primitives.BidId;
 import org.example.components.orderprocessing.domain.primitives.OrderId;
-import org.example.components.orderprocessing.messages.BuyStockCommand;
-import org.example.components.orderprocessing.messages.CancelOrderCommand;
-import org.example.components.orderprocessing.messages.OrderCancelledEvent;
-import org.example.components.orderprocessing.messages.SellStockCommand;
+import org.example.components.orderprocessing.messages.*;
 import org.example.pipesandfilters.Filter;
 import org.example.pipesandfilters.HotMessageSource;
 import org.example.pipesandfilters.MessageSink;
@@ -37,9 +31,29 @@ public class OrderProcessingComponent implements Filter<Command, Event>, ActiveW
     private final HotMessageSource<Event> output = new HotMessageSource<>();
 
     public OrderProcessingComponent() {
-        askQueue = new BestTimePrioritizedAskQueue(QUEUE_CAPACITY, this::onAskCancelled);
-        bidQueue = new BestTimePrioritizedBidQueue(QUEUE_CAPACITY, this::onBidCancelled);
-        engine = new OrderProcessingEngine(askQueue, bidQueue, new DefaultTransactionIdFactory(), output::publish);
+        askQueue = new BestTimePrioritizedAskQueue(QUEUE_CAPACITY, new BestTimePrioritizedAskQueue.OutputPort() {
+            @Override
+            public void orderCancelled(@NotNull Ask ask) {
+                onOrderCancelled(ask);
+            }
+
+            @Override
+            public void orderCompleted(@NotNull Ask ask) {
+                onOrderCompleted(ask);
+            }
+        });
+        bidQueue = new BestTimePrioritizedBidQueue(QUEUE_CAPACITY, new BestTimePrioritizedBidQueue.OutputPort() {
+            @Override
+            public void orderCancelled(@NotNull Bid bid) {
+                onOrderCancelled(bid);
+            }
+
+            @Override
+            public void orderCompleted(@NotNull Bid bid) {
+                onOrderCompleted(bid);
+            }
+        });
+        engine = new OrderProcessingEngine(askQueue, bidQueue, new DefaultTransactionIdFactory(), this::onTransactionCreated);
     }
 
     @Override
@@ -56,14 +70,19 @@ public class OrderProcessingComponent implements Filter<Command, Event>, ActiveW
         }
     }
 
-    private void onBidCancelled(@NotNull Bid bid) {
-        log.info("Bid {} cancelled", bid.orderId());
-        output.publish(new OrderCancelledEvent(bid.orderId()));
+    private void onOrderCancelled(@NotNull AbstractOrder order) {
+        log.info("Order cancelled: {}", order.orderId());
+        output.publish(new OrderCancelledEvent(order.orderId()));
     }
 
-    private void onAskCancelled(@NotNull Ask ask) {
-        log.info("Ask {} cancelled", ask.orderId());
-        output.publish(new OrderCancelledEvent(ask.orderId()));
+    private void onOrderCompleted(@NotNull AbstractOrder order) {
+        log.info("Order completed: {}", order.orderId());
+        output.publish(new OrderCompletedEvent(order.orderId()));
+    }
+
+    private void onTransactionCreated(@NotNull Transaction transaction) {
+        log.info("Transaction created: {}", transaction);
+        output.publish(new TransactionCreatedEvent(transaction));
     }
 
     private void cancel(@NotNull OrderId orderId) {

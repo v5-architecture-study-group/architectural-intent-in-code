@@ -14,7 +14,17 @@ final class ExpiringEvictingQueue<E> {
     private final EvictingQueue<Entry<E>> queue;
 
     ExpiringEvictingQueue(@NotNull EvictingQueue.QueueFactory queueFactory, @Nullable Lock pushLock, @Nullable Lock pollLock, @Nullable EvictingQueueOutputPort<E> outputPort) {
-        queue = new EvictingQueue<>(queueFactory, pushLock, pollLock, outputPort == null ? null : e -> outputPort.elementEvicted(e.element));
+        queue = new EvictingQueue<>(queueFactory, pushLock, pollLock, outputPort == null ? null : new EvictingQueueOutputPort<>() {
+            @Override
+            public void elementEvicted(@NotNull Entry<E> element) {
+                outputPort.elementEvicted(element.element);
+            }
+
+            @Override
+            public void elementPolled(@NotNull Entry<E> element) {
+                outputPort.elementPolled(element.element);
+            }
+        });
     }
 
     public void push(@NotNull E element, @NotNull Duration keepFor) {

@@ -79,7 +79,17 @@ public class BestTimePrioritizedAskQueue implements PrioritizedAskQueue {
                 new EvictingQueue.ArrayBlockingQueueFactory(queueCapacity),
                 NoLock.INSTANCE, // ArrayBlockingQueue handles the locking for us when pushing
                 new ReentrantLock(),
-                outputPort::orderCancelled
+                new EvictingQueueOutputPort<>() {
+                    @Override
+                    public void elementEvicted(@NotNull Ask element) {
+                        outputPort.orderCancelled(element);
+                    }
+
+                    @Override
+                    public void elementPolled(@NotNull Ask element) {
+                        outputPort.orderCompleted(element);
+                    }
+                }
         );
 
         @Override
@@ -100,5 +110,7 @@ public class BestTimePrioritizedAskQueue implements PrioritizedAskQueue {
     @Port
     public interface OutputPort {
         void orderCancelled(@NotNull Ask ask);
+
+        void orderCompleted(@NotNull Ask ask);
     }
 }
